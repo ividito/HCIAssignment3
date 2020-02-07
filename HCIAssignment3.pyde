@@ -1,12 +1,15 @@
 BUTTONSIZE = 25
 BUTTONGAP = 15
 BUTTONCOUNT = 25
+TARGETLIMIT = 21
 
 uid = ""
 roundCounter = 0
 condition = ""
 buttons = []
 userState = 0
+target = [0,0]
+targetCounter = 0
 
 
 def generateButtons():
@@ -54,7 +57,7 @@ def conditionSelection():
     text("2", 245, 160)
     
 def mousePressed():
-    global userState, condition
+    global userState, condition, targetCounter, roundCounter, target
     if userState == 1:  # condition selection
         global condition
         if 10 < mouseX < 160 and 120 < mouseY < 170:
@@ -64,17 +67,24 @@ def mousePressed():
             condition = 'area'
             userState+=1
     elif userState == 2: #starting the trial
-        # if initial button pressed, move userState to trial
-        pass
+        if dist(mouseX, mouseY, target[0], target[1]) < BUTTONSIZE:  # TODO check that this is the correct bounding for targets, and add another check based on cursor condition (maybe an isClickValid method?)
+            targetCounter += 1
+            userState += 1
     elif userState == 3:
-        pass
-        # check if any button is pressed, move trial along
+        if dist(mouseX, mouseY, target[0], target[1]) < BUTTONSIZE:  # TODO check that this is the correct bounding for targets, and add another check based on cursor condition (maybe an isClickValid method?)
+            if targetCounter > TARGETLIMIT:
+                roundCounter += 1
+                userState -= 1
+                targetCounter = 0
+            else:
+                targetCounter += 1
+                
+                # TODO We also need to add logging
+            
 
 def initialTargetState():
-    global condition
+    global condition, target, targetCounter
     background(50)
-    fill(220)
-    text(condition, 10, 116)
     fill(250, 0, 20)
     if len(buttons) == 0:
         generateButtons()
@@ -82,10 +92,21 @@ def initialTargetState():
         x = b[0]
         y = b[1]
         circle(x, y, BUTTONSIZE)
-    # Pick a button as start
+    target = buttons[targetCounter]
+    fill(0, 250, 20)
+    circle(target[0], target[1], BUTTONSIZE)
     
 def trial():
-    pass
+    global condition, target, targetCounter
+    background(50)
+    fill(250, 0, 20)
+    for b in buttons:
+        x = b[0]
+        y = b[1]
+        circle(x, y, BUTTONSIZE)
+    target = buttons[targetCounter%len(buttons)]
+    fill(0, 250, 20)
+    circle(target[0], target[1], BUTTONSIZE)
     
 drawState = { 0: initialState,
               1: conditionSelection,
