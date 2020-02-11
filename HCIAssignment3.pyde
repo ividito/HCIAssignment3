@@ -1,4 +1,4 @@
-BUTTONSIZE = 25
+BUTTONSIZE = 25*2
 BUTTONGAP = 15
 BUTTONCOUNT = 25
 TARGETLIMIT = 21
@@ -10,6 +10,12 @@ buttons = []
 userState = 0
 target = [0,0]
 targetCounter = 0
+
+roundPrompts = { 0 : "This is a practice round. Select the highlighted dots as quickly and accurately as possible.",
+                 1 : "This is round 1/3. Select the highlighted dots as quickly and accurately as possible.",
+                 2 : "This is round 2/3. Select the highlighted dots as quickly and accurately as possible.",
+                 3 : "This is round 3/3. Select the highlighted dots as quickly and accurately as possible."
+                 }
 
 
 def generateButtons():
@@ -67,27 +73,30 @@ def mousePressed():
             condition = 'area'
             userState+=1
     elif userState == 2: #starting the trial
-        if dist(mouseX, mouseY, target[0], target[1]) < BUTTONSIZE:  # TODO check that this is the correct bounding for targets, and add another check based on cursor condition (maybe an isClickValid method?)
+        check, radius = isValid(mouseX, mouseY)
+        fill(0, 0, 220, 30)
+        circle(mouseX, mouseY, radius)
+        if (check):            
             targetCounter += 1
             userState += 1
     elif userState == 3:
-        if dist(mouseX, mouseY, target[0], target[1]) < BUTTONSIZE:  # TODO check that this is the correct bounding for targets, and add another check based on cursor condition (maybe an isClickValid method?)
+        check, radius = isValid(mouseX, mouseY)
+        if (check):
             if targetCounter > TARGETLIMIT:
                 roundCounter += 1
                 userState -= 1
-                targetCounter = 0
             else:
                 targetCounter += 1
-                
                 # TODO We also need to add logging
             
 
 def initialTargetState():
-    global condition, target, targetCounter
+    global condition, target, targetCounter, roundCounter, roundPrompts
     background(50)
     fill(250, 0, 20)
-    if len(buttons) == 0:
+    if len(buttons) == 0 or targetCounter > 0:
         generateButtons()
+        targetCounter = 0
     for b in buttons:
         x = b[0]
         y = b[1]
@@ -95,6 +104,12 @@ def initialTargetState():
     target = buttons[targetCounter]
     fill(0, 250, 20)
     circle(target[0], target[1], BUTTONSIZE)
+    check, radius = isValid(mouseX, mouseY)
+    fill(0, 0, 220, 30)
+    circle(mouseX, mouseY, radius)
+    fill(250)
+    prompt = roundPrompts[roundCounter]
+    text(prompt, 10, 30)
     
 def trial():
     global condition, target, targetCounter
@@ -104,17 +119,55 @@ def trial():
         x = b[0]
         y = b[1]
         circle(x, y, BUTTONSIZE)
-    target = buttons[targetCounter%len(buttons)]
+    target = buttons[targetCounter % len(buttons)]
     fill(0, 250, 20)
     circle(target[0], target[1], BUTTONSIZE)
+    radius = getRadius()
+    fill(0, 0, 220, 30)
+    circle(mouseX, mouseY, radius)
     
 drawState = { 0: initialState,
               1: conditionSelection,
               2: initialTargetState,
               3: trial}
 
+def isValid(x, y):
+    global condition, targetCounter, buttons
+    if condition == "normal":
+        if dist(x, y, target[0], target[1]) < BUTTONSIZE/2:
+            return True, 0
+        else:
+            return False, 0
+    elif condition == "area": # BubbleCursor Functionality
+        minPointer = 0
+        minDist = 9999  # arbitrary high value
+        for i, b in enumerate(buttons):
+            if dist(x, y, b[0], b[1]) < minDist:
+                minPointer = i
+                minDist = dist(x, y, b[0], b[1])
+        if minPointer == targetCounter:
+            return True, minDist
+        else:
+            return False, minDist
+
+def getRadius():
+    global condition, buttons
+    if condition == "normal":
+        return 0
+    else:
+        minPointer = 0
+        minDist = 9999  # arbitrary high value
+        for i, b in enumerate(buttons):
+            if dist(mouseX, mouseY, b[0], b[1]) < minDist:
+                minPointer = i
+                minDist = dist(mouseX, mouseY, b[0], b[1])
+        return minDist
+        
+
 def setup():
+    frameRate(30)
     size(720, 720)
     
 def draw():
     drawState[userState]()
+    text(userState, 10, 30)
